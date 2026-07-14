@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+/* Sokdok — Arch Blue reading theme (matches Max's system aesthetic). */
+:root {
+  --bg: #14141f;
+  --bg-elev: #1a1a2e;
+  --bg-card: #20203a;
+  --border: #2c2c48;
+  --text: #e7e7f2;
+  --text-dim: #9a9ab5;
+  --accent: #1793d1;
+  --accent-soft: #1793d133;
+  --good: #4ade80;
+  --bad: #f87171;
+  --warn: #fbbf24;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-elev: var(--bg-elev);
+  --color-bg-card: var(--bg-card);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-dim: var(--text-dim);
+  --color-accent: var(--accent);
+  --color-good: var(--good);
+  --color-bad: var(--bad);
+  --color-warn: var(--warn);
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Reading surface: generous line-height for engaged reading (research/01). */
+.reading {
+  font-size: 1.35rem;
+  line-height: 2.1;
+  letter-spacing: 0.01em;
+}
+
+.tok {
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.1s;
+}
+.tok:hover {
+  background: var(--accent-soft);
+}
+.tok-active {
+  background: var(--accent);
+  color: #fff;
+}
+.tok-saved {
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
