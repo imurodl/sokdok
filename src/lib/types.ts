@@ -27,6 +27,7 @@ export interface GlossEntry {
   lemma: string; // best-guess dictionary form
   reading?: string;
   pos?: string;
+  grade?: string; // KRDict word_grade: 초급 / 중급 / 고급
   defs: string[]; // English definitions
   particles?: string[]; // stripped grammatical endings, if any
   source: "bundled" | "krdict" | "none";

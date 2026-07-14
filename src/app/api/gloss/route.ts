@@ -3,7 +3,7 @@ import { krdictLookup } from "@/lib/krdict";
 import { stripParticles } from "@/lib/korean";
 
 // Simple in-memory cache (per server instance) to stay well under KRDict's quota.
-const cache = new Map<string, { lemma: string; pos?: string; defs: string[]; source: string }>();
+const cache = new Map<string, { lemma: string; pos?: string; grade?: string; defs: string[]; source: string }>();
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim();
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   }
 
   const result = hit
-    ? { lemma: hit.lemma, pos: hit.pos, defs: hit.defs, source: "krdict" }
+    ? { lemma: hit.lemma, pos: hit.pos, grade: hit.grade, defs: hit.defs, source: "krdict" }
     : { lemma: q, defs: [], source: "none" };
 
   cache.set(q, result);

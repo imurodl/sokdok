@@ -29,6 +29,11 @@ export function GlossPanel({
                   {entry.pos}
                 </span>
               )}
+              {entry.grade && (
+                <span className="text-xs rounded bg-accent/20 px-1.5 py-0.5 text-accent">
+                  {entry.grade}
+                </span>
+              )}
             </div>
             {found ? (
               <ul className="mt-1 text-text">

@@ -58,11 +58,11 @@ export function ReadingSession({ text }: { text: Text }) {
       setGlossLoading(true);
       fetch(`/api/gloss?q=${encodeURIComponent(word)}`)
         .then((r) => r.json())
-        .then((res: { lemma: string; pos?: string; defs: string[]; source: string }) => {
+        .then((res: { lemma: string; pos?: string; grade?: string; defs: string[]; source: string }) => {
           if (res.defs?.length) {
             setGloss((cur) =>
               cur && cur.word === word
-                ? { ...cur, lemma: res.lemma || cur.lemma, pos: res.pos ?? cur.pos, defs: res.defs, source: "krdict" }
+                ? { ...cur, lemma: res.lemma || cur.lemma, pos: res.pos ?? cur.pos, grade: res.grade, defs: res.defs, source: "krdict" }
                 : cur,
             );
             updateBankWordDefs(entry.lemma, res.defs);
