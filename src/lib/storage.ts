@@ -80,6 +80,16 @@ export function addBankWord(w: Omit<BankWord, "seen" | "correct" | "lastRtMs" | 
   saveBank(bank);
 }
 
+/** Enrich a captured word's definitions (e.g. after an async KRDict lookup). */
+export function updateBankWordDefs(lemma: string, defs: string[]): void {
+  if (defs.length === 0) return;
+  const bank = getBank();
+  const w = bank.find((b) => b.lemma === lemma);
+  if (!w) return;
+  w.defs = defs;
+  saveBank(bank);
+}
+
 export function dueBankWords(now = Date.now()): BankWord[] {
   return getBank().filter((w) => w.dueAt <= now);
 }

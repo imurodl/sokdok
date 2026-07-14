@@ -149,8 +149,8 @@ This loop *is* the differentiator. Modules below expand each step.
               ┌──────────────────┼──────────────────────┐
               │                  │                        │
      ┌────────▼───────┐  ┌───────▼────────┐   ┌───────────▼──────────┐
-     │ Postgres (Neon)│  │ NLP service     │   │ Media / jobs (oci)   │
-     │  Prisma        │  │  (oci, FastAPI) │   │  - TTS generation     │
+     │ Supabase       │  │ NLP service     │   │ Media / jobs (oci)   │
+     │  Postgres+Auth │  │  (oci, FastAPI) │   │  - TTS generation     │
      │  users, texts, │  │  - Kiwi tokenize│   │  - forced alignment   │
      │  words, srs,   │  │  - readability  │   │  - content ingest     │
      │  sessions      │  │  - lemma/POS    │   │  - Cloudflare R2 audio│
@@ -166,13 +166,14 @@ This loop *is* the differentiator. Modules below expand each step.
 
 **Component decisions:**
 - **Frontend/app:** Next.js 16 (App Router) + TypeScript + Tailwind + shadcn/ui, deployed on **Vercel**. Reading engine runs client-side for instant tap-to-gloss.
-- **DB:** **Neon Postgres** + Prisma (you already run this in taklif/nikohnoma). Stores users, texts, tokens, word bank, SRS state, sessions, metrics.
+- **DB + auth + sync:** **Supabase** (Postgres + Auth + row-level security). Chosen over Neon+Prisma because the prior `ssok-korean` app already has a proven Supabase sync layer (`db.js`: chunked upserts, custom-deck CRUD, localStorage↔cloud reconciliation) to port. Stores users, texts, tokens, word bank, SRS state, sessions, metrics.
 - **NLP microservice:** small **FastAPI on `oci`** wrapping **Kiwi** (tokenize, lemma, POS) + readability scorer. Called at ingest time (not per-request in hot path). Results cached in Postgres.
 - **Dictionary:** **KRDict Open API** (CC-BY-SA, free 50k/day), cached; offline CC-KEDICT fallback.
 - **TTS + alignment:** batch jobs on `oci` (Google/Azure TTS → MFA) writing audio + timing JSON to **Cloudflare R2**; served via CDN.
 - **Content ingest:** scheduled jobs on `oci` pull news/RSS, auto-tokenize + auto-level, store.
-- **Auth:** Auth.js (NextAuth) — email + Google + Kakao.
-- **Personal-first phase:** single-user, no auth, Next.js + local Postgres/SQLite or Neon free tier, NLP either in-process (Node port) or the same FastAPI on `oci`. See roadmap Phase 0.
+- **Auth:** Supabase Auth — email + Google + Kakao.
+- **State:** Zustand store with `persist` middleware + hydration-safe rehydration (ported pattern from `malmat`), so localStorage in Phase 0 swaps cleanly for Supabase-backed persistence later.
+- **Personal-first phase:** single-user, no auth, Next.js + localStorage (Zustand persist), NLP either in-process (Kiwi WASM / heuristic) or FastAPI on `oci`. See roadmap Phase 0.
 
 ---
 
@@ -192,7 +193,8 @@ Composite score → TOPIK band (1–6) + 0–100 Sokdok level:
 - Calibrate against the TOPIK 6k list + kdict tags; refine with user comprehension data over time.
 
 ### 7.3 SRS
-- **FSRS** for meaning review; separate lightweight scheduler for speed-recognition (targets reaction-time, not just recall).
+- **Leitner box scheduler** ported from the prior apps (ssok: 8 boxes, intervals `[0,1,3,7,14,30,60,120]`; malmat: 6 boxes with demotion-on-miss). Proven, simple, already written. FSRS is a possible later upgrade.
+- **Speed-recognition variant:** promotion requires not just a correct answer but a *fast* one (sub-~1.5s reaction time), so the schedule trains automaticity, not just recall.
 - Chunk cards scheduled alongside word cards.
 
 ### 7.4 "For you" recommendation

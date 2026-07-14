@@ -19,11 +19,11 @@ No auth, single user, simplest infra. This proves the loop before anything else.
 - 🔨 **Timed Repeated Reading** mode with live WPM + pass-over-pass delta chart. *(the signature feature — build early)*
 - 🔨 **Word bank** capture + a basic **speed-recognition drill**.
 - 🔨 Seed content: paste-your-own + a handful of Easy-Korean-news / Wikisource texts, hand-leveled.
-- 🔨 Local Postgres or Neon free tier + Prisma; simple schema (texts, tokens, sessions, words).
-- 🎯 **M0: End-to-end loop works** — pick → read → score → TRR → capture → drill → see WPM trend.
+- 🔨 Persistence via localStorage (Zustand persist); schema shaped for a clean Supabase migration later.
+- 🎯 **M0: End-to-end loop works** — pick → read → score → TRR → capture → drill → see WPM trend. ✅ done + deployed (sokdok.vercel.app)
 - 📊 Max's ERR trend over 2–3 weeks of daily use.
 
-**Stack (phase 0):** Next.js on Vercel/local · Neon Postgres + Prisma · FastAPI+Kiwi on `oci` · KRDict · Claude for questions. No auth.
+**Stack (phase 0):** Next.js on Vercel · localStorage (→ Supabase later) · KRDict gloss API · heuristic/Kiwi tokenizer · Claude for questions. No auth.
 
 ---
 
@@ -59,7 +59,7 @@ No auth, single user, simplest infra. This proves the loop before anything else.
 
 **Goal:** other people can sign up and use it.
 
-- 🔨 **Auth.js** (email + Google + Kakao); per-user data isolation; migrate personal data.
+- 🔨 **Supabase Auth** (email + Google + Kakao); per-user data isolation via RLS; migrate personal data. Port `ssok-korean`'s `db.js` sync layer (chunked upserts, custom decks).
 - 🔨 Multi-tenant schema, rate limits, quotas.
 - 🔨 **Billing** (Stripe/Lemon Squeezy): Free vs. Pro; paywall RWL/TOPIK/advanced analytics.
 - 🔨 Onboarding + placement (quick reading test → starting level).

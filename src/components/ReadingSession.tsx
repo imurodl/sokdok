@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { Text, GlossEntry, ReadingPass, Session } from "@/lib/types";
 import { glossBundled } from "@/lib/dict";
 import { computePass, effectiveRate, pctOfNative, NATIVE_WPM } from "@/lib/stats";
-import { addSession, addBankWord } from "@/lib/storage";
+import { addSession, addBankWord, updateBankWordDefs } from "@/lib/storage";
 import { useReadingTimer } from "@/hooks/useReadingTimer";
 import { TextReader } from "./TextReader";
 import { GlossPanel } from "./GlossPanel";
@@ -17,6 +17,7 @@ export function ReadingSession({ text }: { text: Text }) {
   const [phase, setPhase] = useState<Phase>("intro");
   const [passes, setPasses] = useState<ReadingPass[]>([]);
   const [gloss, setGloss] = useState<GlossEntry | null>(null);
+  const [glossLoading, setGlossLoading] = useState(false);
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [savedLemmas, setSavedLemmas] = useState<Set<string>>(new Set());
   const [comprehension, setComprehension] = useState<number>(NaN);
@@ -43,7 +44,7 @@ export function ReadingSession({ text }: { text: Text }) {
       setGloss(entry);
       setActiveKey(key);
       // Capture every tapped word — the unknown ones are exactly what's worth
-      // banking (research/01). Def-less words wait for a Phase-1 KRDict lookup.
+      // banking (research/01).
       addBankWord({
         lemma: entry.lemma,
         surface: word,
@@ -51,6 +52,24 @@ export function ReadingSession({ text }: { text: Text }) {
         contextSentence: context,
       });
       setSavedLemmas((prev) => new Set(prev).add(entry.lemma));
+
+      // Enrich from KRDict (authoritative). Fills in words the bundled dict
+      // misses, and upgrades the banked entry so the drill can quiz it.
+      setGlossLoading(true);
+      fetch(`/api/gloss?q=${encodeURIComponent(word)}`)
+        .then((r) => r.json())
+        .then((res: { lemma: string; pos?: string; defs: string[]; source: string }) => {
+          if (res.defs?.length) {
+            setGloss((cur) =>
+              cur && cur.word === word
+                ? { ...cur, lemma: res.lemma || cur.lemma, pos: res.pos ?? cur.pos, defs: res.defs, source: "krdict" }
+                : cur,
+            );
+            updateBankWordDefs(entry.lemma, res.defs);
+          }
+        })
+        .catch(() => {})
+        .finally(() => setGlossLoading(false));
     },
     [],
   );
@@ -138,7 +157,7 @@ export function ReadingSession({ text }: { text: Text }) {
           savedLemmas={savedLemmas}
           lemmaOf={lemmaOf}
         />
-        <GlossPanel entry={gloss} onClose={() => setGloss(null)} />
+        <GlossPanel entry={gloss} loading={glossLoading} onClose={() => setGloss(null)} />
       </div>
     );
   }

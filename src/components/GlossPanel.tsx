@@ -6,9 +6,11 @@ import { labelParticle } from "@/lib/dict";
 export function GlossPanel({
   entry,
   onClose,
+  loading = false,
 }: {
   entry: GlossEntry | null;
   onClose: () => void;
+  loading?: boolean;
 }) {
   if (!entry) return null;
   const found = entry.defs.length > 0;
@@ -34,10 +36,15 @@ export function GlossPanel({
                   <li key={i}>• {d}</li>
                 ))}
               </ul>
+            ) : loading ? (
+              <p className="mt-1 text-text-dim text-sm animate-pulse">looking up…</p>
             ) : (
               <p className="mt-1 text-text-dim text-sm">
-                No bundled entry yet — saved to your word bank for later.
+                No dictionary entry — saved to your word bank for later.
               </p>
+            )}
+            {found && entry.source === "krdict" && (
+              <span className="mt-1 inline-block text-xs text-text-dim">via KRDict</span>
             )}
             {entry.particles && entry.particles.length > 0 && (
               <p className="mt-2 text-sm text-text-dim">
