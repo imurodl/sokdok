@@ -1,0 +1,481 @@
+<title>Sokdok — reading gym (prototype)</title>
+<style>
+  :root{
+    --ground:#FBFAF8; --paper:#F4F1E9; --card:#FFFFFF; --ink:#1C1B19; --ink-soft:#6B675E;
+    --ink-faint:#97928a; --line:#E5E1D6; --line-strong:#d8d3c5; --signal:#C9701A; --signal-2:#DD8420;
+    --signal-soft:#f3e6d3; --gain:#3F7D5B; --miss:#B4462F; --shadow:0 18px 50px -30px rgba(40,32,16,.35);
+    --shadow-sm:0 2px 10px -4px rgba(40,32,16,.22); color-scheme:light;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --ground:#121110; --paper:#1C1915; --card:#201C17; --ink:#EEE9DC; --ink-soft:#9C958A; --ink-faint:#6f695f;
+    --line:#2C2820; --line-strong:#3a352b; --signal:#E9973A; --signal-2:#F0A445; --signal-soft:#2a2013;
+    --gain:#5CA37D; --miss:#D9694C; --shadow:0 22px 60px -30px rgba(0,0,0,.65); --shadow-sm:0 2px 12px -4px rgba(0,0,0,.5); color-scheme:dark;
+  }}
+  :root[data-theme="light"]{--ground:#FBFAF8;--paper:#F4F1E9;--card:#FFFFFF;--ink:#1C1B19;--ink-soft:#6B675E;--ink-faint:#97928a;--line:#E5E1D6;--line-strong:#d8d3c5;--signal:#C9701A;--signal-2:#DD8420;--signal-soft:#f3e6d3;--gain:#3F7D5B;--miss:#B4462F;--shadow:0 18px 50px -30px rgba(40,32,16,.35);--shadow-sm:0 2px 10px -4px rgba(40,32,16,.22);color-scheme:light;}
+  :root[data-theme="dark"]{--ground:#121110;--paper:#1C1915;--card:#201C17;--ink:#EEE9DC;--ink-soft:#9C958A;--ink-faint:#6f695f;--line:#2C2820;--line-strong:#3a352b;--signal:#E9973A;--signal-2:#F0A445;--signal-soft:#2a2013;--gain:#5CA37D;--miss:#D9694C;--shadow:0 22px 60px -30px rgba(0,0,0,.65);--shadow-sm:0 2px 12px -4px rgba(0,0,0,.5);color-scheme:dark;}
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--ground);color:var(--ink);font-family:ui-sans-serif,-apple-system,"SF Pro Text","Segoe UI",Roboto,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased;min-height:100vh}
+  .kr{font-family:"Apple SD Gothic Neo","Pretendard","Noto Sans KR",ui-sans-serif,sans-serif}
+  .mono{font-family:ui-monospace,"SF Mono","JetBrains Mono","Roboto Mono",monospace;font-variant-numeric:tabular-nums}
+  button{font:inherit;cursor:pointer}
+  .wrap{max-width:660px;margin:0 auto;padding:0 20px}
+
+  /* top bar */
+  header{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--ground) 85%,transparent);backdrop-filter:blur(12px) saturate(1.3);border-bottom:1px solid var(--line)}
+  .bar{display:flex;align-items:center;gap:16px;height:58px;max-width:660px;margin:0 auto;padding:0 20px}
+  .brand{display:flex;align-items:baseline;gap:8px;font-weight:800;letter-spacing:-.02em;font-size:19px;cursor:pointer;background:none;border:none;color:var(--ink)}
+  .brand .en{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+  .bar .sp{margin-left:auto}
+  .navbtn{background:none;border:none;color:var(--ink-soft);font-size:14px;font-weight:500;padding:6px 4px}
+  .navbtn:hover,.navbtn.on{color:var(--ink)}
+  .navbtn.on{color:var(--signal)}
+  .ico{width:34px;height:34px;border-radius:8px;border:1px solid var(--line-strong);background:transparent;color:var(--ink-soft);display:grid;place-items:center}
+  .ico:hover{color:var(--ink);background:var(--paper)}
+
+  main{padding:22px 0 90px}
+  .fade{animation:fade .28s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.fade{animation:none}}
+
+  h2.page{font-size:26px;font-weight:800;letter-spacing:-.02em}
+  .muted{color:var(--ink-soft)}
+  .faint{color:var(--ink-faint)}
+  .kicker{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--signal);font-weight:700}
+
+  .btn{font-weight:600;font-size:15px;border-radius:10px;padding:11px 18px;border:1px solid transparent;display:inline-flex;align-items:center;gap:8px;text-decoration:none;transition:transform .1s,background .15s}
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:var(--signal);color:#fff}
+  .btn-primary:hover{background:var(--signal-2)}
+  .btn-ghost{background:transparent;color:var(--ink);border-color:var(--line-strong)}
+  .btn-ghost:hover{background:var(--paper)}
+  .btn-quiet{background:transparent;color:var(--ink-soft);border:none;padding:11px 6px}
+  .btn-quiet:hover{color:var(--ink)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+  /* dashboard */
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  @media (max-width:560px){.tiles{grid-template-columns:repeat(2,1fr)}}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px}
+  .tile .lab{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+  .tile .big{font-size:27px;font-weight:800;letter-spacing:-.03em;margin-top:4px}
+  .tile .sub{font-size:11.5px;color:var(--ink-soft);margin-top:1px}
+  .tile .sub b{color:var(--gain)}
+  .trend{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:12px}
+  .trend .th{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-soft);margin-bottom:10px}
+  .trend-bars{display:flex;align-items:flex-end;gap:5px;height:64px}
+  .trend-bars i{flex:1;background:var(--signal);border-radius:3px 3px 0 0;min-height:3px;opacity:.85}
+  .trend-bars i.last{background:var(--gain);opacity:1}
+  .empty{background:var(--card);border:1px dashed var(--line-strong);border-radius:14px;padding:18px;color:var(--ink-soft);font-size:14px}
+
+  /* library cards */
+  .lib{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+  .lcard{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:15px 16px;text-align:left;transition:border-color .15s,transform .12s;width:100%}
+  .lcard:hover{border-color:var(--signal);transform:translateY(-2px)}
+  .lcard .body{flex:1;min-width:0}
+  .lcard .ttl{font-size:17px;font-weight:700}
+  .lcard .meta{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
+  .pill{font-size:10px;font-weight:700;letter-spacing:.04em;padding:3px 8px;border-radius:100px;flex:none}
+  .pill.n{background:color-mix(in srgb,var(--signal) 15%,transparent);color:var(--signal)}
+  .pill.w{background:color-mix(in srgb,var(--gain) 16%,transparent);color:var(--gain)}
+  .pill.e{background:var(--paper);color:var(--ink-soft);border:1px solid var(--line)}
+  .lvlwrap{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:none;width:70px}
+  .lvlwrap .lv{font-size:11px;color:var(--ink-faint)}
+  .lvlbar{width:100%;height:4px;border-radius:3px;background:var(--line);overflow:hidden}
+  .lvlbar i{display:block;height:100%;background:var(--signal)}
+  .lcard .done-dot{font-size:11px;color:var(--gain);font-weight:600}
+
+  .section-label{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin:22px 0 8px}
+
+  /* reading */
+  .hud{position:sticky;top:58px;z-index:30;display:flex;align-items:center;gap:14px;background:color-mix(in srgb,var(--ground) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);margin:0 -20px 18px;padding:11px 20px}
+  .hud .wpm{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1}
+  .hud .u{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+  .hud .t{font-size:13px;color:var(--ink-soft)}
+  .hud .paused{color:var(--signal);font-weight:600}
+  .read{font-size:22px;line-height:2.05;padding-bottom:20px}
+  .read p{margin-bottom:18px}
+  .w{border-radius:5px;padding:0 1px;cursor:pointer;transition:background .1s}
+  .w:hover{background:var(--signal-soft)}
+  .w.picked{background:var(--signal);color:#fff}
+  .w.known{box-shadow:inset 0 -2px 0 var(--line-strong)}
+  .passnote{font-size:13px;color:var(--ink-soft);margin-bottom:12px}
+  .passnote b{color:var(--signal)}
+
+  /* gloss sheet */
+  .sheet-bg{position:fixed;inset:0;z-index:60;background:transparent;display:none}
+  .sheet-bg.show{display:block}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;transform:translateY(110%);transition:transform .22s cubic-bezier(.2,.8,.2,1);padding:0 16px 16px}
+  .sheet.show{transform:none}
+  .sheet-in{max-width:660px;margin:0 auto;background:var(--card);border:1px solid var(--line-strong);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow)}
+  .sheet .top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .sheet .lemma{font-size:24px;font-weight:700}
+  .sheet .tag{font-size:11px;padding:2px 7px;border-radius:5px;background:var(--paper);border:1px solid var(--line);color:var(--ink-soft)}
+  .sheet .grade{font-size:11px;padding:2px 7px;border-radius:5px;background:var(--signal-soft);color:var(--signal);font-weight:700}
+  .sheet .x{margin-left:auto;background:none;border:none;color:var(--ink-faint);font-size:22px;line-height:1}
+  .sheet .def{margin-top:6px;font-size:15.5px}
+  .sheet .saved{margin-top:8px;font-size:12px;color:var(--signal);font-weight:600}
+  .sheet .none{margin-top:6px;font-size:14px;color:var(--ink-soft)}
+
+  /* quiz */
+  .q{margin-bottom:22px}
+  .q .qp{font-weight:650;font-size:16.5px;margin-bottom:10px}
+  .choices{display:flex;flex-direction:column;gap:9px}
+  .choice{text-align:left;background:transparent;border:1px solid var(--line-strong);border-radius:11px;padding:12px 14px;font-size:15px;color:var(--ink);transition:border-color .12s,background .12s}
+  .choice:hover{border-color:var(--signal)}
+  .choice.sel{border-color:var(--signal);background:var(--signal-soft)}
+  .choice.right{border-color:var(--gain);background:color-mix(in srgb,var(--gain) 12%,transparent)}
+  .choice.wrong{border-color:var(--miss);background:color-mix(in srgb,var(--miss) 12%,transparent)}
+
+  /* results */
+  .result-hero{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px;text-align:center;box-shadow:var(--shadow-sm)}
+  .result-hero .err{font-size:56px;font-weight:800;letter-spacing:-.04em;line-height:1}
+  .result-hero .errlab{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-top:4px}
+  .result-hero .ctx{font-size:13px;color:var(--ink-soft);margin-top:10px}
+  .result-hero .ctx b{color:var(--gain)}
+  .bars{display:flex;align-items:flex-end;gap:14px;height:150px;margin-top:10px}
+  .bcol{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end}
+  .bcol .v{font-size:16px;font-weight:800}
+  .bcol .bar{width:100%;max-width:60px;background:linear-gradient(180deg,var(--signal-2),var(--signal));border-radius:7px 7px 3px 3px;transition:height .8s cubic-bezier(.2,.8,.2,1)}
+  .bcol:last-child .bar{background:linear-gradient(180deg,var(--gain),color-mix(in srgb,var(--gain) 70%,#000))}
+  .bcol .l{font-size:11px;color:var(--ink-faint)}
+  .stat3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+
+  /* drill */
+  .drill{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:30px 22px;text-align:center;box-shadow:var(--shadow-sm)}
+  .drill .dw{font-size:52px;font-weight:700;letter-spacing:-.02em}
+  .drill .dr{font-size:12.5px;color:var(--ink-faint);margin-top:6px}
+  .dchoices{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}
+  @media (max-width:480px){.dchoices{grid-template-columns:1fr}}
+  .drow{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-soft);margin-bottom:14px}
+  .prog{height:4px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:18px}
+  .prog i{display:block;height:100%;background:var(--signal);transition:width .3s}
+
+  .callout{background:var(--signal-soft);border:1px solid color-mix(in srgb,var(--signal) 30%,transparent);border-radius:12px;padding:13px 15px;font-size:14px;color:var(--ink);margin:14px 0}
+  .callout b{color:var(--signal)}
+</style>
+
+<header>
+  <div class="bar">
+    <button class="brand" data-nav="library"><span class="kr">속독</span><span class="en">Sokdok</span></button>
+    <span class="sp"></span>
+    <button class="navbtn" data-nav="library" id="nav-lib">Library</button>
+    <button class="navbtn" data-nav="drill" id="nav-drill">Drill</button>
+    <button class="ico" id="theme" aria-label="Toggle theme" title="Light / dark">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>
+    </button>
+  </div>
+</header>
+
+<main><div class="wrap" id="app"></div></main>
+
+<div class="sheet-bg" id="sheetBg"></div>
+<div class="sheet" id="sheet"><div class="sheet-in" id="sheetIn"></div></div>
+
+<script>
+(function(){
+  var root=document.documentElement;
+  document.getElementById('theme').addEventListener('click',function(){
+    var c=root.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+    root.setAttribute('data-theme',c==='dark'?'light':'dark');
+  });
+
+  /* ---------------- data ---------------- */
+  var TEXTS=[
+    {id:'coffee',title:'아침 커피',pill:'e',pillLab:'ESSAY',level:2,diff:28,
+     body:'저는 아침마다 커피를 마셔요. 커피가 없으면 하루를 시작하기 어려워요.\n집 근처에 작은 카페가 하나 있어요. 그 카페의 커피가 정말 맛있어요.\n주말에는 친구들과 같이 그 카페에 가요. 커피를 마시면서 이야기를 해요.',
+     known:['저는','커피를','하루를','친구들과'],
+     q:[{p:'글쓴이는 언제 커피를 마셔요?',c:['매일 아침','주말에만','저녁에','회사에서만'],a:0},
+        {p:'카페는 어디에 있어요?',c:['학교 안에','집 근처에','회사 옆에','역 앞에'],a:1}]},
+    {id:'news',title:'쉬운 뉴스 — 가을 날씨',pill:'n',pillLab:'NEWS',level:3,diff:40,
+     body:'요즘 날씨가 정말 좋습니다. 아침저녁으로는 조금 쌀쌀하지만 낮에는 따뜻합니다.\n주말에는 전국이 대체로 맑을 것으로 예상됩니다. 나들이하기 좋은 날씨가 이어지겠습니다.\n다음 주부터는 기온이 조금씩 떨어질 전망입니다. 감기에 걸리지 않도록 조심하시기 바랍니다.',
+     known:['날씨가','주말에는','다음'],
+     q:[{p:'주말 날씨는 어떨 것으로 예상돼요?',c:['비가 와요','대체로 맑아요','눈이 와요','흐려요'],a:1},
+        {p:'다음 주 기온은 어떻게 될까요?',c:['올라가요','그대로예요','조금씩 떨어져요','알 수 없어요'],a:2}]},
+    {id:'habit',title:'읽기는 습관이다',pill:'e',pillLab:'ESSAY',level:4,diff:58,
+     body:'읽기 실력은 하루아침에 늘지 않는다. 중요한 것은 매일 꾸준히 읽는 습관을 만드는 것이다.\n같은 글을 여러 번 반복해서 읽으면 익숙한 단어와 표현이 눈에 자동으로 들어오게 된다. 그러면 읽는 속도가 눈에 띄게 빨라진다.\n결국 읽기 속도를 결정하는 것은 특별한 기술이 아니라, 그동안 쌓아 온 읽기의 양이다.',
+     known:['실력은','꾸준히','읽는','속도가'],
+     q:[{p:'같은 글을 반복해서 읽으면 어떻게 돼요?',c:['지루해져요','속도가 느려져요','속도가 빨라져요','단어를 잊어요'],a:2},
+        {p:'읽기 속도를 결정하는 것은?',c:['특별한 기술','비싼 책','쌓아 온 읽기의 양','선생님'],a:2}]}
+  ];
+  // gloss keyed by cleaned surface form
+  var GLOSS={
+    '저':['저','pron','','I, me (humble)'],'아침마다':['아침','noun','초급','morning — every morning'],
+    '커피':['커피','noun','초급','coffee — a drink brewed from roasted coffee beans'],'마셔요':['마시다','verb','초급','to drink'],
+    '없으면':['없다','adjective','초급','to not exist; if there is none'],'하루':['하루','noun','초급','a day'],
+    '시작하기':['시작하다','verb','초급','to start, to begin'],'어려워요':['어렵다','adjective','초급','to be difficult'],
+    '집':['집','noun','초급','house, home'],'근처에':['근처','noun','초급','nearby, vicinity'],'작은':['작다','adjective','초급','to be small'],
+    '카페':['카페','noun','초급','café'],'하나':['하나','noun','초급','one'],'있어요':['있다','adjective','초급','to exist, to have'],
+    '정말':['정말','adverb','초급','really, truly'],'맛있어요':['맛있다','adjective','초급','to be delicious'],
+    '주말에는':['주말','noun','초급','weekend'],'친구들과':['친구','noun','초급','friend — with friends'],'같이':['같이','adverb','초급','together'],
+    '가요':['가다','verb','초급','to go'],'이야기를':['이야기','noun','초급','story, talk'],'해요':['하다','verb','초급','to do'],
+    '날씨가':['날씨','noun','초급','weather'],'좋습니다':['좋다','adjective','초급','to be good'],'아침저녁으로는':['아침저녁','noun','중급','morning and evening'],
+    '쌀쌀하지만':['쌀쌀하다','adjective','중급','to be chilly'],'낮에는':['낮','noun','초급','daytime'],'따뜻합니다':['따뜻하다','adjective','초급','to be warm'],
+    '전국이':['전국','noun','중급','the whole country'],'대체로':['대체로','adverb','고급','generally, on the whole'],'맑을':['맑다','adjective','초급','to be clear (sky)'],
+    '예상됩니다':['예상되다','verb','중급','to be expected'],'나들이하기':['나들이','noun','중급','an outing'],'이어지겠습니다':['이어지다','verb','중급','to continue'],
+    '기온이':['기온','noun','중급','temperature'],'떨어질':['떨어지다','verb','중급','to fall, to drop'],'전망입니다':['전망','noun','고급','outlook, forecast'],
+    '감기에':['감기','noun','초급','a cold (illness)'],'걸리지':['걸리다','verb','중급','to catch (an illness)'],'조심하시기':['조심하다','verb','초급','to be careful'],
+    '읽기':['읽기','noun','중급','reading — an act of reading and understanding a text'],'실력은':['실력','noun','중급','ability, skill'],
+    '하루아침에':['하루아침','noun','고급','overnight; in a very short time'],'늘지':['늘다','verb','중급','to increase, to improve'],'않는다':['않다','verb','초급','to not (do)'],
+    '중요한':['중요하다','adjective','초급','to be important'],'매일':['매일','noun','초급','every day'],'꾸준히':['꾸준히','adverb','중급','steadily, consistently'],
+    '읽는':['읽다','verb','초급','to read'],'습관을':['습관','noun','초급','habit — a mode of behavior naturally learned through repetition'],
+    '만드는':['만들다','verb','초급','to make'],'같은':['같다','adjective','초급','to be the same'],'글을':['글','noun','중급','writing, text'],
+    '여러':['여러','determiner','초급','several'],'반복해서':['반복하다','verb','중급','to repeat'],'익숙한':['익숙하다','adjective','중급','to be familiar'],
+    '단어와':['단어','noun','초급','word, vocabulary'],'표현이':['표현','noun','중급','expression'],'눈에':['눈','noun','초급','eye'],
+    '자동으로':['자동','noun','중급','automatic — by itself'],'속도가':['속도','noun','중급','speed'],'빨라진다':['빨라지다','verb','중급','to become faster'],
+    '결국':['결국','adverb','중급','in the end, after all'],'결정하는':['결정하다','verb','중급','to decide, to determine'],
+    '특별한':['특별하다','adjective','중급','to be special'],'기술이':['기술','noun','중급','skill, technique'],'그동안':['그동안','noun','중급','during that time'],
+    '쌓아':['쌓다','verb','중급','to pile up, to accumulate'],'읽기의':['읽기','noun','중급','reading'],'양이다':['양','noun','중급','amount, quantity']
+  };
+
+  /* ---------------- state ---------------- */
+  var S={screen:'library',textId:null,passes:[],comp:null,saved:[],sessions:[],bank:[]};
+  var timer={ms:0,run:false,raf:null,last:0,idle:0};
+
+  function clean(w){return w.replace(/^[^가-힣A-Za-z0-9]+|[^가-힣A-Za-z0-9]+$/g,'');}
+  function wordsOf(t){return t.split(/\s+/).filter(function(w){return /[가-힣]/.test(w)}).length;}
+  function fmt(n){return n.toLocaleString();}
+  function text(id){return TEXTS.find(function(t){return t.id===id});}
+
+  /* ---------- timer ---------- */
+  function tick(now){
+    if(!timer.run){return;}
+    var d=now-timer.last;timer.last=now;
+    if(document.hidden){timer.raf=requestAnimationFrame(tick);return;}
+    timer.ms+=d;
+    var hud=document.getElementById('hud');
+    if(hud){
+      var t=text(S.textId);var wpm=timer.ms>500?Math.round(wordsOf(t.body)/(timer.ms/60000)):0;
+      hud.querySelector('.wpm').textContent=wpm;
+      hud.querySelector('.sec').textContent=(timer.ms/1000).toFixed(0)+'s';
+    }
+    timer.raf=requestAnimationFrame(tick);
+  }
+  function startTimer(){timer.ms=0;timer.run=true;timer.last=performance.now();cancelAnimationFrame(timer.raf);timer.raf=requestAnimationFrame(tick);}
+  function stopTimer(){timer.run=false;cancelAnimationFrame(timer.raf);return timer.ms;}
+
+  /* ---------- gloss ---------- */
+  function openGloss(word){
+    var key=clean(word);var g=GLOSS[key];
+    var box=document.getElementById('sheetIn');
+    if(g){
+      // save to bank
+      if(!S.bank.some(function(b){return b.lemma===g[0]})){S.bank.push({lemma:g[0],def:g[3],pos:g[1]});}
+      if(S.saved.indexOf(g[0])<0)S.saved.push(g[0]);
+      box.innerHTML='<div class="top"><span class="lemma kr">'+g[0]+'</span>'+
+        (g[1]?'<span class="tag">'+g[1]+'</span>':'')+(g[2]?'<span class="grade kr">'+g[2]+'</span>':'')+
+        '<button class="x" aria-label="Close">×</button></div>'+
+        '<div class="def">'+g[3]+'</div><div class="saved">✓ saved to word bank · via KRDict</div>';
+    }else{
+      box.innerHTML='<div class="top"><span class="lemma kr">'+key+'</span><button class="x" aria-label="Close">×</button></div>'+
+        '<div class="none">No dictionary entry — saved to your word bank for later.</div>';
+    }
+    box.querySelector('.x').onclick=closeGloss;
+    document.getElementById('sheet').classList.add('show');
+    document.getElementById('sheetBg').classList.add('show');
+  }
+  function closeGloss(){
+    document.getElementById('sheet').classList.remove('show');
+    document.getElementById('sheetBg').classList.remove('show');
+    var p=document.querySelector('.w.picked');if(p)p.classList.remove('picked');
+  }
+  document.getElementById('sheetBg').onclick=closeGloss;
+
+  /* ---------- render ---------- */
+  var app=document.getElementById('app');
+  function go(screen){S.screen=screen;render();window.scrollTo(0,0);}
+  function setNav(){document.getElementById('nav-lib').classList.toggle('on',S.screen==='library');
+    document.getElementById('nav-drill').classList.toggle('on',S.screen==='drill'||S.screen==='drillDone');}
+
+  function render(){
+    setNav();
+    if(S.screen==='library')return renderLibrary();
+    if(S.screen==='read')return renderRead();
+    if(S.screen==='postpass')return renderPost();
+    if(S.screen==='quiz')return renderQuiz();
+    if(S.screen==='results')return renderResults();
+    if(S.screen==='drill')return renderDrill();
+    if(S.screen==='drillDone')return renderDrillDone();
+  }
+
+  function renderLibrary(){
+    var best=S.sessions.reduce(function(m,s){return Math.max(m,s.bestWpm)},0);
+    var streak=S.sessions.length?1:0;
+    var words=S.sessions.reduce(function(a,s){return a+s.words},0);
+    var last=S.sessions.length?S.sessions[S.sessions.length-1]:null;
+    var errs=S.sessions.map(function(s){return isNaN(s.err)?s.bestWpm:s.err});
+    var maxe=Math.max.apply(null,errs.concat([174]));
+    var h='<div class="fade">';
+    h+='<h2 class="page">Your reading</h2><div class="muted" style="margin:2px 0 16px">Read daily. Watch the line go up.</div>';
+    if(S.sessions.length===0){
+      h+='<div class="empty">No sessions yet — open a text below, read it, and your speed trend shows up here. Try <b>아침 커피</b> first.</div>';
+    }else{
+      h+='<div class="tiles">'+
+        tile('Best WPM',best)+tile('Last ERR',last?(isNaN(last.err)?last.bestWpm:last.err):'—')+
+        tile('Streak',streak+'d')+tile('Words',fmt(words))+'</div>';
+      h+='<div class="trend"><div class="th"><span>Effective reading rate — recent</span><span class="faint">native ≈ 174</span></div><div class="trend-bars">';
+      errs.forEach(function(e,i){h+='<i class="'+(i===errs.length-1?'last':'')+'" style="height:'+Math.max(e/maxe*100,5)+'%"></i>';});
+      h+='</div></div>';
+    }
+    h+='<div class="section-label">Today · leveled for you</div><div class="lib">';
+    TEXTS.forEach(function(t){
+      var done=S.sessions.some(function(s){return s.textId===t.id});
+      h+='<button class="lcard" data-open="'+t.id+'"><span class="pill '+t.pill+'">'+t.pillLab+'</span>'+
+        '<span class="body"><span class="ttl kr">'+t.title+'</span><span class="meta">'+wordsOf(t.body)+' words · '+t.q.length+' questions'+(done?' · <span class="done-dot">✓ read</span>':'')+'</span></span>'+
+        '<span class="lvlwrap"><span class="lv mono">TOPIK '+t.level+'</span><span class="lvlbar"><i style="width:'+t.diff+'%"></i></span></span></button>';
+    });
+    h+='</div></div>';
+    app.innerHTML=h;
+    app.querySelectorAll('[data-open]').forEach(function(b){b.onclick=function(){startSession(b.dataset.open)};});
+  }
+  function tile(l,v){return '<div class="tile"><div class="lab">'+l+'</div><div class="big mono">'+v+'</div></div>';}
+
+  function startSession(id){S.textId=id;S.passes=[];S.comp=null;S.saved=[];go('readIntro');beginPass();}
+  function beginPass(){S.screen='read';startTimer();render();}
+
+  function renderRead(){
+    var t=text(S.textId);
+    var paras=t.body.split('\n');
+    var h='<div class="fade"><div class="hud" id="hud">'+
+      '<div><span class="wpm mono">0</span> <span class="u">wpm</span></div>'+
+      '<div class="t"><span class="sec mono">0s</span></div>'+
+      '<button class="btn btn-primary" id="done" style="margin-left:auto;padding:8px 15px;font-size:14px">Done reading</button></div>';
+    if(S.passes.length>0){var best=Math.max.apply(null,S.passes.map(function(p){return p.wpm}));
+      h+='<div class="passnote">Pass '+(S.passes.length+1)+' — beat your best of <b>'+best+' WPM</b></div>';}
+    h+='<div class="read kr">';
+    paras.forEach(function(p){h+='<p>';
+      p.split(/\s+/).forEach(function(w){if(!w)return;var c=clean(w);var kn=t.known.indexOf(c)>=0;
+        h+='<span class="w'+(kn?' known':'')+'" data-w="'+w.replace(/"/g,'')+'">'+w+'</span> ';});
+      h+='</p>';});
+    h+='</div></div>';
+    app.innerHTML=h;
+    app.querySelectorAll('.w').forEach(function(el){el.onclick=function(){
+      var p=document.querySelector('.w.picked');if(p)p.classList.remove('picked');el.classList.add('picked');openGloss(el.dataset.w);};});
+    document.getElementById('done').onclick=finishPass;
+  }
+  function finishPass(){
+    var ms=stopTimer();var t=text(S.textId);
+    var wpm=Math.max(1,Math.round(wordsOf(t.body)/(ms/60000)));
+    S.passes.push({wpm:wpm,sec:Math.round(ms/1000)});
+    closeGloss();go('postpass');
+  }
+
+  function renderPost(){
+    var last=S.passes[S.passes.length-1];var prev=S.passes.length>1?S.passes[S.passes.length-2]:null;
+    var best=Math.max.apply(null,S.passes.map(function(p){return p.wpm}));
+    var h='<div class="fade"><h2 class="page">Pass '+S.passes.length+' done</h2>'+
+      '<div class="result-hero" style="text-align:left;margin-top:14px"><div style="display:flex;align-items:flex-end;gap:18px">'+
+      '<div><div class="err mono" style="font-size:44px">'+last.wpm+'</div><div class="errlab">wpm · '+last.sec+'s</div></div>';
+    if(prev){var d=last.wpm-prev.wpm;h+='<div class="'+(d>=0?'':'')+'" style="font-size:14px;color:'+(d>=0?'var(--gain)':'var(--miss)')+';font-weight:600">'+(d>=0?'▲ +':'▼ ')+Math.abs(d)+' vs last pass</div>';}
+    h+='</div></div>';
+    h+='<div class="callout">Re-reading the same passage is the best-proven way to speed up — <b>+52% in 9 weeks</b> in the research. Push it 1–2 more times before the quiz.</div>';
+    h+='<div class="row" style="margin-top:6px">'+
+      '<button class="btn btn-primary" id="again">Read again (timed) ↻</button>'+
+      '<button class="btn btn-ghost" id="toquiz">Comprehension check →</button>'+
+      '<button class="btn btn-quiet" id="skip">Finish without quiz</button></div></div>';
+    app.innerHTML=h;
+    document.getElementById('again').onclick=beginPass;
+    document.getElementById('toquiz').onclick=function(){go('quiz')};
+    document.getElementById('skip').onclick=function(){saveSession(NaN)};
+  }
+
+  function renderQuiz(){
+    var t=text(S.textId);var picks={};var submitted=false;
+    function draw(){
+      var h='<div class="fade"><div class="kicker">Comprehension check</div><h2 class="page" style="margin:6px 0 18px">Did it land?</h2>';
+      t.q.forEach(function(q,qi){h+='<div class="q"><div class="qp kr">'+(qi+1)+'. '+q.p+'</div><div class="choices">';
+        q.c.forEach(function(c,ci){var cls='choice';if(picks[qi]===ci)cls+=' sel';
+          if(submitted){if(ci===q.a)cls+=' right';else if(picks[qi]===ci)cls+=' wrong';}
+          h+='<button class="'+cls+' kr" data-q="'+qi+'" data-c="'+ci+'" '+(submitted?'disabled':'')+'>'+c+'</button>';});
+        h+='</div></div>';});
+      var all=t.q.every(function(_,i){return picks[i]!=null});
+      if(!submitted){h+='<button class="btn btn-primary" id="check" '+(all?'':'disabled style="opacity:.4"')+'>Check answers</button>';}
+      else{var correct=t.q.filter(function(q,i){return picks[i]===q.a}).length;var sc=correct/t.q.length;
+        h+='<div class="row"><span style="font-size:17px;font-weight:600">'+correct+' / '+t.q.length+' correct ('+Math.round(sc*100)+'%)</span>'+
+        '<button class="btn btn-primary" id="see" style="margin-left:auto">See results →</button></div>';}
+      h+='</div>';app.innerHTML=h;
+      app.querySelectorAll('.choice').forEach(function(b){b.onclick=function(){picks[b.dataset.q]=+b.dataset.c;draw();};});
+      var chk=document.getElementById('check');if(chk)chk.onclick=function(){submitted=true;draw();};
+      var see=document.getElementById('see');if(see)see.onclick=function(){var correct=t.q.filter(function(q,i){return picks[i]===q.a}).length;saveSession(correct/t.q.length);};
+    }
+    draw();
+  }
+
+  function saveSession(comp){
+    var t=text(S.textId);var best=Math.max.apply(null,S.passes.map(function(p){return p.wpm}));
+    var err=isNaN(comp)?best:Math.round(best*comp);
+    S.comp=comp;
+    S.sessions.push({textId:t.id,title:t.title,level:t.level,bestWpm:best,comprehension:comp,err:err,words:wordsOf(t.body)*S.passes.length,at:S.sessions.length});
+    go('results');
+  }
+
+  function renderResults(){
+    var t=text(S.textId);var best=Math.max.apply(null,S.passes.map(function(p){return p.wpm}));
+    var err=isNaN(S.comp)?best:Math.round(best*S.comp);
+    var pctNative=Math.round(best/174*100);
+    var h='<div class="fade"><div class="result-hero"><div class="err mono">'+err+'</div><div class="errlab">effective reading rate</div>'+
+      '<div class="ctx">best pass <b>'+best+' wpm</b> · '+(isNaN(S.comp)?'no quiz':Math.round(S.comp*100)+'% comprehension')+' · '+pctNative+'% of native</div></div>';
+    if(S.passes.length>1){
+      var mx=Math.max.apply(null,S.passes.map(function(p){return p.wpm}));
+      h+='<div class="section-label">Your passes</div><div class="bars">';
+      S.passes.forEach(function(p,i){h+='<div class="bcol"><span class="v mono">'+p.wpm+'</span><div class="bar" style="height:'+Math.max(p.wpm/mx*100,8)+'%"></div><span class="l">#'+(i+1)+'</span></div>';});
+      h+='</div><div class="muted" style="text-align:center;font-size:13px;margin-top:10px">+'+(S.passes[S.passes.length-1].wpm-S.passes[0].wpm)+' WPM across '+S.passes.length+' reads</div>';
+    }
+    h+='<div class="stat3" style="margin-top:18px">'+
+      tile('Words read',wordsOf(t.body)*S.passes.length)+tile('Words saved',S.saved.length)+tile('Passes',S.passes.length)+'</div>';
+    h+='<div class="row" style="margin-top:20px"><button class="btn btn-primary" data-nav="library">Back to library</button>';
+    if(S.saved.length>0)h+='<button class="btn btn-ghost" data-nav="drill">Drill '+S.saved.length+' saved words →</button>';
+    h+='</div></div>';
+    app.innerHTML=h;
+    wireNav(app);
+  }
+
+  /* ---------- drill ---------- */
+  var deck=null,di=0,dscore={c:0,n:0,rt:0},dstart=0;
+  function buildDeck(){
+    var pool=S.bank.filter(function(b){return b.def});
+    deck=pool.slice().sort(function(){return Math.random()-.5});di=0;dscore={c:0,n:0,rt:0};
+  }
+  function renderDrill(){
+    if(!deck)buildDeck();
+    if(deck.length===0){app.innerHTML='<div class="fade"><h2 class="page">Speed-recognition drill</h2>'+
+      '<div class="empty" style="margin-top:12px">No words yet. Tap unfamiliar words while reading — they land here for fast-recognition practice (building automaticity, not just meaning).</div>'+
+      '<div class="row" style="margin-top:16px"><button class="btn btn-primary" data-nav="library">Go read something</button></div></div>';wireNav(app);return;}
+    if(di>=deck.length){return renderDrillDone();}
+    var card=deck[di];
+    var others=S.bank.filter(function(b){return b.def&&b.lemma!==card.lemma}).map(function(b){return b.def});
+    others=others.sort(function(){return Math.random()-.5}).slice(0,3);
+    var choices=[card.def].concat(others).sort(function(){return Math.random()-.5});
+    var h='<div class="fade"><div class="drow"><span class="mono">'+(di+1)+' / '+deck.length+'</span><span class="mono">'+dscore.c+'/'+dscore.n+(dscore.n?' · avg '+(dscore.rt/dscore.n/1000).toFixed(1)+'s':'')+'</span></div>'+
+      '<div class="prog"><i style="width:'+(di/deck.length*100)+'%"></i></div>'+
+      '<div class="drill"><div class="dw kr">'+card.lemma+'</div><div class="dr">tap the meaning — fast, under 1.5s, no translating</div><div class="dchoices">';
+    choices.forEach(function(c){h+='<button class="choice" data-def="'+encodeURIComponent(c)+'">'+c+'</button>';});
+    h+='</div></div></div>';
+    app.innerHTML=h;dstart=performance.now();
+    app.querySelectorAll('.dchoices .choice').forEach(function(b){b.onclick=function(){
+      var rt=performance.now()-dstart;var ok=decodeURIComponent(b.dataset.def)===card.def;
+      app.querySelectorAll('.dchoices .choice').forEach(function(x){x.disabled=true;
+        if(decodeURIComponent(x.dataset.def)===card.def)x.classList.add('right');else if(x===b)x.classList.add('wrong');});
+      dscore.n++;dscore.rt+=rt;if(ok)dscore.c++;
+      setTimeout(function(){di++;renderDrill();},700);
+    };});
+  }
+  function renderDrillDone(){
+    var avg=dscore.n?dscore.rt/dscore.n:0;
+    app.innerHTML='<div class="fade"><h2 class="page">Drill complete</h2><div class="stat3" style="margin-top:14px">'+
+      tile('Correct',dscore.c+'/'+dscore.n)+tile('Avg speed',(avg/1000).toFixed(1)+'s')+tile('',avg&&avg<1500?'✓ fast':'keep going')+'</div>'+
+      '<div class="callout" style="margin-top:16px">Goal: recognize each word in under ~1.5s <b>without translating</b>. That automaticity is what makes reading fast.</div>'+
+      '<div class="row"><button class="btn btn-primary" id="dagain">Again</button><button class="btn btn-ghost" data-nav="library">Library</button></div></div>';
+    document.getElementById('dagain').onclick=function(){buildDeck();renderDrill();};
+    wireNav(app);
+  }
+
+  function wireNav(scope){scope.querySelectorAll('[data-nav]').forEach(function(b){b.onclick=function(){
+    var d=b.dataset.nav;if(d==='drill'){deck=null;}go(d==='drill'?'drill':d);};});}
+
+  document.querySelectorAll('header [data-nav]').forEach(function(b){b.onclick=function(){
+    var d=b.dataset.nav;if(d==='drill'){deck=null;go('drill');}else go(d);};});
+
+  render();
+})();
+</script>
