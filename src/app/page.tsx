@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { TEXTS } from "@/lib/texts";
 import { Dashboard } from "@/components/Dashboard";
+import { LocalLibrary } from "@/components/LocalLibrary";
 
 export default function Home() {
   return (
@@ -11,6 +12,19 @@ export default function Home() {
         <div className="mt-4">
           <Dashboard />
         </div>
+      </section>
+
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Your imports</h2>
+          <Link
+            href="/import"
+            className="rounded-lg bg-accent px-4 py-1.5 text-sm font-medium text-white"
+          >
+            + Import text
+          </Link>
+        </div>
+        <LocalLibrary />
       </section>
 
       <section>

@@ -20,6 +20,8 @@ export interface Text {
   questions: Question[];
   wordCount: number; // eojeol count, precomputed
   charCount: number; // Hangul/char count, precomputed
+  local?: boolean; // true for user-imported texts (stored in localStorage)
+  addedAt?: number; // epoch ms, imported texts only
 }
 
 export interface GlossEntry {

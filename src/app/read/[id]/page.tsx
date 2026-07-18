@@ -1,6 +1,6 @@
-import { notFound } from "next/navigation";
 import { getText } from "@/lib/texts";
 import { ReadingSession } from "@/components/ReadingSession";
+import { LocalReader } from "@/components/LocalReader";
 
 export default async function ReadPage({
   params,
@@ -9,6 +9,8 @@ export default async function ReadPage({
 }) {
   const { id } = await params;
   const text = getText(id);
-  if (!text) notFound();
-  return <ReadingSession text={text} />;
+  // Seed texts resolve on the server; imported texts live in localStorage and
+  // are resolved on the client.
+  if (text) return <ReadingSession text={text} />;
+  return <LocalReader id={id} />;
 }

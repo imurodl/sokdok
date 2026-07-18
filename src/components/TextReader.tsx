@@ -11,7 +11,7 @@ export function TextReader({
   lemmaOf,
 }: {
   body: string;
-  onTapWord: (word: string, context: string, key: string) => void;
+  onTapWord: (word: string, context: string, key: string, offset: number) => void;
   activeKey?: string | null;
   savedLemmas?: Set<string>;
   lemmaOf?: (word: string) => string;
@@ -46,7 +46,7 @@ export function TextReader({
                 <span
                   key={t.key}
                   className={cls}
-                  onClick={() => onTapWord(t.word, para, `${pi}:${t.key}`)}
+                  onClick={() => onTapWord(t.word, para, `${pi}:${t.key}`, t.start)}
                 >
                   {t.text}
                 </span>

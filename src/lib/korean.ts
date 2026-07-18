@@ -28,6 +28,7 @@ export interface Token {
   word: string; // cleaned word (no surrounding punctuation)
   tappable: boolean; // has Hangul/latin/digit worth glossing
   key: string; // unique per-position key
+  start: number; // char offset of `word` within the paragraph (for NLP context)
 }
 
 /** Split a paragraph into tappable tokens, preserving spacing/punctuation. */
@@ -35,18 +36,23 @@ export function tokenize(paragraph: string): Token[] {
   const parts = paragraph.split(/(\s+)/); // keep whitespace chunks
   const tokens: Token[] = [];
   let i = 0;
+  let cursor = 0; // running char offset into the paragraph
   for (const part of parts) {
     if (/^\s+$/.test(part) || part === "") {
-      tokens.push({ text: part, word: "", tappable: false, key: `w${i++}` });
+      tokens.push({ text: part, word: "", tappable: false, key: `w${i++}`, start: cursor });
+      cursor += part.length;
       continue;
     }
     const word = part.replace(/^[^가-힣A-Za-z0-9]+|[^가-힣A-Za-z0-9]+$/g, "");
+    const rel = word ? part.indexOf(word) : 0;
     tokens.push({
       text: part,
       word,
       tappable: /[가-힣A-Za-z]/.test(word),
       key: `w${i++}`,
+      start: cursor + rel,
     });
+    cursor += part.length;
   }
   return tokens;
 }

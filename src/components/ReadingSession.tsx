@@ -39,7 +39,7 @@ export function ReadingSession({ text }: { text: Text }) {
   }, [timer]);
 
   const onTapWord = useCallback(
-    (word: string, context: string, key: string) => {
+    (word: string, context: string, key: string, offset: number) => {
       const entry = glossBundled(word);
       setGloss(entry);
       setActiveKey(key);
@@ -53,20 +53,26 @@ export function ReadingSession({ text }: { text: Text }) {
       });
       setSavedLemmas((prev) => new Set(prev).add(entry.lemma));
 
-      // Enrich from KRDict (authoritative). Fills in words the bundled dict
-      // misses, and upgrades the banked entry so the drill can quiz it.
+      // Enrich via the gloss API: Kiwi analyzes the sentence in context (so
+      // conjugations lemmatize correctly) then KRDict defines the headword.
       setGlossLoading(true);
-      fetch(`/api/gloss?q=${encodeURIComponent(word)}`)
+      fetch("/api/gloss", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ word, context, offset }),
+      })
         .then((r) => r.json())
-        .then((res: { lemma: string; pos?: string; grade?: string; defs: string[]; source: string }) => {
-          if (res.defs?.length) {
-            setGloss((cur) =>
-              cur && cur.word === word
-                ? { ...cur, lemma: res.lemma || cur.lemma, pos: res.pos ?? cur.pos, grade: res.grade, defs: res.defs, source: "krdict" }
-                : cur,
-            );
-            updateBankWordDefs(entry.lemma, res.defs);
-          }
+        .then((res: { lemma: string; pos?: string; grade?: string; defs: string[]; particles?: string[]; source: string }) => {
+          setGloss((cur) => {
+            if (!cur || cur.word !== word) return cur;
+            const particles = res.particles?.length ? res.particles : cur.particles;
+            if (res.defs?.length) {
+              return { ...cur, lemma: res.lemma || cur.lemma, pos: res.pos ?? cur.pos, grade: res.grade, defs: res.defs, particles, source: "krdict" };
+            }
+            // No KRDict hit, but Kiwi may still have sharpened the lemma/grammar.
+            return { ...cur, lemma: res.lemma || cur.lemma, pos: cur.pos ?? res.pos, particles };
+          });
+          if (res.defs?.length) updateBankWordDefs(entry.lemma, res.defs);
         })
         .catch(() => {})
         .finally(() => setGlossLoading(false));
@@ -197,17 +203,19 @@ export function ReadingSession({ text }: { text: Text }) {
           >
             Read again (timed) ↻
           </button>
-          <button
-            onClick={() => setPhase("quiz")}
-            className="rounded-lg border border-border px-4 py-2 font-medium"
-          >
-            Comprehension check →
-          </button>
+          {text.questions.length > 0 && (
+            <button
+              onClick={() => setPhase("quiz")}
+              className="rounded-lg border border-border px-4 py-2 font-medium"
+            >
+              Comprehension check →
+            </button>
+          )}
           <button
             onClick={() => saveSession(NaN)}
             className="rounded-lg px-4 py-2 text-text-dim hover:text-text"
           >
-            Finish without quiz
+            {text.questions.length > 0 ? "Finish without quiz" : "Finish"}
           </button>
         </div>
       </div>
